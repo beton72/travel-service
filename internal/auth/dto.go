@@ -1,10 +1,21 @@
 package auth
 
+import "time"
+
 type RegisterInput struct {
-	FirstName string `json:"first_name" binding:"required"`
-	LastName  string `json:"last_name" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=8"`
+	FirstName      string    `json:"first_name" binding:"required"`
+	LastName       string    `json:"last_name" binding:"required"`
+	Patronymic     string    `json:"patronymic"` // 👈 вот это добавь
+	Email          string    `json:"email" binding:"required,email"`
+	Password       string    `json:"password" binding:"required"`
+	Phone          string    `json:"phone"`
+	BirthDate      time.Time `json:"birth_date"`
+	Role           string    `json:"role"`
+	Citizenship    string    `json:"citizenship"`
+	HasChildren    bool      `json:"has_children"`
+	ChildrenInfo   []string  `json:"children_info"`
+	PassportNumber string    `json:"passport_number"`
+	PhotoURLs      []string  `json:"photo_urls"`
 }
 
 type LoginInput struct {

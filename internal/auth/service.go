@@ -18,7 +18,7 @@ func HashPassword(password string) string {
 }
 
 type Service interface {
-	Register(input RegisterInput) error
+	Register(input RegisterInput) (string, error)
 	Login(input LoginInput) (string, error)
 	UpdateUser(userID uint, input UpdateUserInput) error
 }
@@ -29,23 +29,39 @@ func NewService() Service {
 	return &service{}
 }
 
-func (s *service) Register(input RegisterInput) error {
+func (s *service) Register(input RegisterInput) (string, error) {
 	var exists models.User
 	err := db.DB.Where("user_email = ?", input.Email).First(&exists).Error
 	if err == nil {
-		return errors.New("user already exists")
+		return "", errors.New("user already exists")
 	}
 
 	user := models.User{
 		FirstName:    input.FirstName,
 		LastName:     input.LastName,
 		UserEmail:    input.Email,
-		PasswordHash: HashPassword(input.Password), // ← замена
+		PasswordHash: HashPassword(input.Password),
 		Role:         "client",
 		PhotoURLs:    []string{},
 	}
 
-	return db.DB.Create(&user).Error
+	if err := db.DB.Create(&user).Error; err != nil {
+		return "", err
+	}
+
+	// Генерация токена
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 168).Unix(), // 7 дней
+	})
+
+	tokenString, err := token.SignedString([]byte("your_secret_key"))
+	if err != nil {
+		return "", errors.New("failed to generate token")
+	}
+
+	return tokenString, nil
 }
 
 func (s *service) Login(input LoginInput) (string, error) {

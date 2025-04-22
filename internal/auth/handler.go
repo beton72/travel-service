@@ -23,12 +23,16 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Register(input); err != nil {
+	token, err := h.service.Register(input)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "registration successful"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "registration successful",
+		"token":   token,
+	})
 }
 
 func (h *Handler) Login(c *gin.Context) {

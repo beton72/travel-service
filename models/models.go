@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"gorm.io/datatypes"
 )
 
 type User struct {
@@ -43,14 +44,14 @@ type Hotel struct {
 }
 
 type Room struct {
-	ID          uint     `gorm:"primaryKey"`
-	HotelID     uint     `gorm:"not null"`
-	Type        string   `gorm:"size:50;not null"`
-	Description string   `gorm:"type:text"`
-	Price       float64  `gorm:"type:numeric"`
-	Capacity    int      `gorm:"not null"`
-	Amenities   string   `gorm:"type:jsonb"`
-	PhotoURLs   []string `gorm:"type:jsonb"`
+	ID          uint           `gorm:"primaryKey"`
+	HotelID     uint           `gorm:"not null"`
+	Type        string         `gorm:"size:50;not null"`
+	Description string         `gorm:"type:text"`
+	Price       float64        `gorm:"type:numeric"`
+	Capacity    int            `gorm:"not null"`
+	Amenities   datatypes.JSON `gorm:"type:jsonb"`
+	PhotoURLs   datatypes.JSON `gorm:"type:jsonb"`
 
 	Hotel    *Hotel    `gorm:"foreignKey:HotelID"`
 	Bookings []Booking `gorm:"foreignKey:RoomID"`
@@ -89,7 +90,7 @@ type Review struct {
 	UserID    uint      `gorm:"not null"`
 	HotelID   uint      `gorm:"not null"`
 	Rating    int       `gorm:"not null"`
-	Comment   string    `gorm:"type:text"`
+	Text      string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	PhotoURLs []string  `gorm:"type:jsonb"`
 
