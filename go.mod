@@ -12,6 +12,8 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/drummonds/excelize v1.8.0 // indirect
+	github.com/drummonds/excelize/v2 v2.7.1 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
