@@ -20,7 +20,7 @@ func (h *Handler) CreateReview(c *gin.Context) {
 	var input CreateReviewInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверные данные"})
 		return
 	}
 
@@ -33,18 +33,36 @@ func (h *Handler) CreateReview(c *gin.Context) {
 }
 
 func (h *Handler) GetHotelReviews(c *gin.Context) {
-	hotelIDStr := c.Param("id")
-	hotelID, err := strconv.ParseUint(hotelIDStr, 10, 64)
+	hotelID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid hotel ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID отеля"})
 		return
 	}
 
-	reviews, err := h.service.GetHotelReviews(uint(hotelID))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	reviews, err := h.service.GetHotelReviews(uint(hotelID), page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get reviews"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при получении отзывов"})
 		return
 	}
 
 	c.JSON(http.StatusOK, reviews)
+}
+
+func (h *Handler) GetReviewStats(c *gin.Context) {
+	hotelID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID отеля"})
+		return
+	}
+
+	stats, err := h.service.GetReviewStats(uint(hotelID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при получении статистики"})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
 }

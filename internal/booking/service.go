@@ -23,11 +23,12 @@ func NewService(db *gorm.DB) Service {
 }
 
 func (s *service) CreateBooking(roomID uint, userID uint, input CreateBookingInput) error {
+	// Проверка существования номера в базе
 	var room models.Room
 	if err := s.db.First(&room, roomID).Error; err != nil {
 		return errors.New("номер не найден")
 	}
-
+	// Парсинг и проверка дат
 	start, err := time.Parse("2006-01-02", input.StartDate)
 	if err != nil {
 		return errors.New("неверный формат даты начала")
@@ -40,7 +41,7 @@ func (s *service) CreateBooking(roomID uint, userID uint, input CreateBookingInp
 		return errors.New("дата начала должна быть раньше даты окончания")
 	}
 
-	// Проверка занятости
+	// Проверка, есть ли брони, пересекающиеся с заданным периодом
 	var count int64
 	err = s.db.Model(&models.Booking{}).
 		Where("room_id = ? AND start_date < ? AND end_date > ?", roomID, end, start).
@@ -51,17 +52,17 @@ func (s *service) CreateBooking(roomID uint, userID uint, input CreateBookingInp
 	if count > 0 {
 		return errors.New("номер занят в выбранные даты")
 	}
-
+	// Создание новой записи бронирования
 	booking := models.Booking{
-		UserID:     userID,
-		RoomID:     roomID,
-		StartDate:  start,
-		EndDate:    end,
-		GuestCount: input.GuestCount,
-		Comment:    input.Comment,
-		Paid:       false,
+		UserID:     userID,           // Идентификатор пользователя
+		RoomID:     roomID,           // Идентификатор номера
+		StartDate:  start,            // Дата начала
+		EndDate:    end,              // Дата окончания
+		GuestCount: input.GuestCount, // Количество гостей
+		Comment:    input.Comment,    // Комментарий к брони
+		Paid:       false,            // По умолчанию — не оплачено
 	}
-
+	// Сохранение брони в базе данных
 	return s.db.Create(&booking).Error
 }
 
@@ -80,15 +81,20 @@ func (s *service) GetUserBookings(userID uint) ([]models.Booking, error) {
 }
 
 func (s *service) CancelBooking(bookingID uint, userID uint) error {
+	// Получаем запись бронирования по ID
 	var booking models.Booking
 	if err := s.db.First(&booking, bookingID).Error; err != nil {
 		return errors.New("бронирование не найдено")
 	}
 
+	// Проверяем, принадлежит ли бронь текущему пользователю
 	if booking.UserID != userID {
 		return errors.New("вы не можете отменить чужую бронь")
 	}
 
+	// Устанавливаем статус "отменено"
 	booking.Status = "cancelled"
+
+	// Сохраняем изменения
 	return s.db.Save(&booking).Error
 }

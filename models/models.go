@@ -41,6 +41,19 @@ type Hotel struct {
 	Rooms   []Room       `gorm:"foreignKey:HotelID"`
 	Admins  []AdminHotel `gorm:"foreignKey:HotelID"`
 	Reviews []Review     `gorm:"foreignKey:HotelID"`
+
+	ViewCount   uint    `gorm:"default:0"`
+	TotalRating float64 `gorm:"default:0"`
+	ReviewCount uint    `gorm:"default:0"`
+	Revenue     float64 `gorm:"default:0"`
+
+	// // Метод для расчёта среднего рейтинга
+	// func (h *Hotel) GetAverageRating() float64 {
+	//     if h.ReviewCount == 0 {
+	//         return 0
+	//     }
+	//     return h.TotalRating / float64(h.ReviewCount)
+	// }
 }
 
 type Room struct {
@@ -119,4 +132,11 @@ type AdminHotel struct {
 
 	User  *User  `gorm:"foreignKey:UserID"`
 	Hotel *Hotel `gorm:"foreignKey:HotelID"`
+}
+
+type RoomWithHotel struct {
+	// models.Room
+	HotelName string `json:"hotel_name"`
+	Address   string `json:"address"`
+	Region    string `json:"region"`
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"travel-service/internal/analytics"
 	"travel-service/internal/auth"
 	"travel-service/internal/booking"
 	"travel-service/internal/db"
@@ -23,9 +24,6 @@ func main() {
 	roomService := room.NewService(db.DB)
 	roomHandler := room.NewHandler(roomService)
 
-	reviewService := review.NewService(db.DB)
-	reviewHandler := review.NewHandler(reviewService)
-
 	bookingService := booking.NewService(db.DB)
 	bookingHandler := booking.NewHandler(bookingService)
 
@@ -38,8 +36,14 @@ func main() {
 	hotelService := hotel.NewService(db.DB)
 	hotelHandler := hotel.NewHandler(hotelService)
 
+	reviewService := review.NewService(db.DB, hotelService)
+	reviewHandler := review.NewHandler(reviewService)
+
 	paymentService := payment.NewService(db.DB)
 	paymentHandler := payment.NewHandler(paymentService)
+
+	analyticsService := analytics.NewService(db.DB)
+	analyticsHandler := analytics.NewHandler(analyticsService)
 
 	protected.GET("/me", authHandler.GetMe)
 	protected.PATCH("/me", authHandler.UpdateMe)
@@ -53,6 +57,7 @@ func main() {
 	protected.POST("/bookings/:id/pay", paymentHandler.PayBooking)
 	protected.GET("/me/payments", paymentHandler.GetUserPayments)
 	protected.POST("/reviews", reviewHandler.CreateReview)
+	protected.GET("/analytics/hotels/:id/export", analyticsHandler.ExportReport)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
@@ -60,8 +65,12 @@ func main() {
 
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.POST("/rooms/search", hotelHandler.SearchAvailableRooms)
 	r.GET("/hotels", hotelHandler.GetHotels)
+	r.GET("/hotels/:id", hotelHandler.GetHotelByID)
 	r.GET("/rooms/:id", roomHandler.GetRoom)
 	r.GET("/hotels/:id/reviews", reviewHandler.GetHotelReviews)
+	r.GET("/hotels/:id/reviews/stats", reviewHandler.GetReviewStats)
+	r.POST("/hotels/filter-by-price", hotelHandler.FilterHotelsByPrice)
 	r.Run(":8080")
 }

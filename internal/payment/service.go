@@ -23,30 +23,36 @@ func NewService(db *gorm.DB) Service {
 }
 
 func (s *service) ProcessMockPayment(bookingID, userID uint) error {
+	// Получаем бронирование по ID
 	var booking models.Booking
 	if err := s.db.First(&booking, bookingID).Error; err != nil {
 		return errors.New("бронирование не найдено")
 	}
+
+	// Проверка, принадлежит ли бронь пользователю
 	if booking.UserID != userID {
 		return errors.New("нельзя оплатить чужое бронирование")
 	}
+
+	// Проверка, не оплачена ли бронь ранее
 	if booking.Paid {
 		return errors.New("бронирование уже оплачено")
 	}
-
+	// Создаём запись об оплате (эмуляция оплаты)
 	payment := models.Payment{
-		BookingID:     bookingID,
-		Amount:        1000, // ты можешь тут рассчитать по дням и цене номера
-		Status:        "success",
-		PaymentMethod: "mock",
-		TransactionID: fmt.Sprintf("MOCK-%d", time.Now().Unix()),
-		CreatedAt:     time.Now(),
+		BookingID:     bookingID,                                 // Связь с бронью
+		Amount:        1000,                                      // Фиксированная сумма (можно заменить расчётом)
+		Status:        "success",                                 // Статус оплаты
+		PaymentMethod: "mock",                                    // Тип оплаты
+		TransactionID: fmt.Sprintf("MOCK-%d", time.Now().Unix()), // Уникальный ID транзакции
+		CreatedAt:     time.Now(),                                // Время создания
 	}
-
+	// Сохраняем платёж в базу
 	if err := s.db.Create(&payment).Error; err != nil {
 		return err
 	}
 
+	// Обновляем статус бронирования
 	booking.Paid = true
 	booking.Status = "paid"
 	return s.db.Save(&booking).Error

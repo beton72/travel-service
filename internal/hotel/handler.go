@@ -69,3 +69,54 @@ func (h *Handler) AddAdminToHotel(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Администратор добавлен к отелю"})
 }
+
+func (h *Handler) GetHotelByID(c *gin.Context) {
+	id := c.Param("id")
+
+	// Инкремент просмотров
+	if err := h.service.IncrementViews(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update views"})
+		return
+	}
+
+	// Получение отеля
+	hotel, err := h.service.GetHotelByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "hotel not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, hotel)
+}
+
+func (h *Handler) FilterHotelsByPrice(c *gin.Context) {
+	var input FilterHotelsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	hotels, err := h.service.FilterHotelsByPriceRange(input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, hotels)
+}
+
+func (h *Handler) SearchAvailableRooms(c *gin.Context) {
+	var input SearchRoomsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	rooms, err := h.service.SearchAvailableRooms(input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, rooms)
+}
