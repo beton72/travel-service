@@ -43,8 +43,7 @@ func main() {
 	paymentHandler := payment.NewHandler(paymentService)
 
 	analyticsService := analytics.NewService(db.DB)
-	excelService := analytics.NewExcelService(analyticsService)
-	analyticsHandler := analytics.NewHandler(analyticsService, excelService)
+	analyticsHandler := analytics.NewHandler(analyticsService)
 
 	db.SeedTestData(db.DB)
 
@@ -60,7 +59,7 @@ func main() {
 	protected.POST("/bookings/:id/pay", paymentHandler.PayBooking)
 	protected.GET("/me/payments", paymentHandler.GetUserPayments)
 	protected.POST("/reviews", reviewHandler.CreateReview)
-	protected.GET("/analytics/hotels/:id/export", analyticsHandler.ExportExcel)
+	protected.GET("/analytics/report", analyticsHandler.GenerateExcelReport)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
