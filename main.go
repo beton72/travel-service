@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"travel-service/internal/analytics"
 	"travel-service/internal/auth"
 	"travel-service/internal/booking"
 	"travel-service/internal/db"
@@ -58,9 +57,6 @@ func main() {
 	paymentService := payment.NewService(db.DB)
 	paymentHandler := payment.NewHandler(paymentService)
 
-	analyticsService := analytics.NewService(db.DB)
-	analyticsHandler := analytics.NewHandler(analyticsService)
-
 	protected.GET("/me", authHandler.GetMe)
 	protected.PATCH("/me", authHandler.UpdateMe)
 	protected.GET("/me/bookings", bookingHandler.GetUserBookings)
@@ -73,7 +69,6 @@ func main() {
 	protected.POST("/bookings/:id/pay", paymentHandler.PayBooking)
 	protected.GET("/me/payments", paymentHandler.GetUserPayments)
 	protected.POST("/reviews", reviewHandler.CreateReview)
-	protected.GET("/analytics/report", analyticsHandler.GenerateExcelReport)
 	protected.GET("/me/hotels", hotelHandler.GetMyHotels)
 
 	r.GET("/ping", func(c *gin.Context) {
