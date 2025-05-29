@@ -2,9 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/lib/pq"
-	"gorm.io/datatypes"
 )
 
 type User struct {
@@ -30,13 +27,14 @@ type User struct {
 }
 
 type Hotel struct {
-	ID        uint           `gorm:"primaryKey"`
-	Name      string         `gorm:"size:100;not null"`
-	Address   string         `gorm:"size:200;not null"`
-	INN       string         `gorm:"size:12;not null"`
-	Phone     string         `gorm:"size:15;not null"`
-	Region    string         `gorm:"size:100;not null"`
-	PhotoURLs pq.StringArray `gorm:"type:text[]" json:"photo_urls"`
+	ID        uint     `gorm:"primaryKey"`
+	Name      string   `gorm:"size:100;not null"`
+	Address   string   `gorm:"size:200;not null"`
+	INN       string   `gorm:"size:12;not null"`
+	Phone     string   `gorm:"size:15;not null"`
+	Region    string   `gorm:"size:100;not null"`
+	PhotoURLs []string `gorm:"type:jsonb"`
+	Amenities []string `gorm:"type:jsonb"`
 
 	Rooms   []Room       `gorm:"foreignKey:HotelID"`
 	Admins  []AdminHotel `gorm:"foreignKey:HotelID"`
@@ -46,28 +44,21 @@ type Hotel struct {
 	TotalRating float64 `gorm:"default:0"`
 	ReviewCount uint    `gorm:"default:0"`
 	Revenue     float64 `gorm:"default:0"`
-
-	// // Метод для расчёта среднего рейтинга
-	// func (h *Hotel) GetAverageRating() float64 {
-	//     if h.ReviewCount == 0 {
-	//         return 0
-	//     }
-	//     return h.TotalRating / float64(h.ReviewCount)
-	// }
 }
 
 type Room struct {
-	ID          uint           `gorm:"primaryKey"`
-	HotelID     uint           `gorm:"not null"`
-	Type        string         `gorm:"size:50;not null"`
-	Description string         `gorm:"type:text"`
-	Price       float64        `gorm:"type:numeric"`
-	Capacity    int            `gorm:"not null"`
-	Amenities   datatypes.JSON `gorm:"type:jsonb"`
-	PhotoURLs   datatypes.JSON `gorm:"type:jsonb"`
+	ID          uint     `gorm:"primaryKey"`
+	HotelID     uint     `gorm:"not null"`
+	Type        string   `gorm:"size:50;not null"`
+	Description string   `gorm:"type:text"`
+	Price       float64  `gorm:"type:numeric"`
+	Capacity    int      `gorm:"not null"`
+	PhotoURLs   []string `gorm:"type:jsonb"`
+	Amenities   []string `gorm:"type:jsonb"`
 
-	Hotel    *Hotel    `gorm:"foreignKey:HotelID"`
-	Bookings []Booking `gorm:"foreignKey:RoomID"`
+	Hotel       *Hotel    `gorm:"foreignKey:HotelID"`
+	Bookings    []Booking `gorm:"foreignKey:RoomID"`
+	StatusToday string    `json:"status_today" gorm:"-"`
 }
 
 type Booking struct {
@@ -106,6 +97,7 @@ type Review struct {
 	Text      string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	PhotoURLs []string  `gorm:"type:jsonb"`
+	Amenities []string  `gorm:"type:jsonb"`
 
 	User  *User `gorm:"foreignKey:UserID"`
 	Hotel Hotel `gorm:"foreignKey:HotelID"`
@@ -129,6 +121,7 @@ type AdminHotel struct {
 	UserID    uint     `gorm:"not null"`
 	HotelID   uint     `gorm:"not null"`
 	PhotoURLs []string `gorm:"type:jsonb"`
+	Amenities []string `gorm:"type:jsonb"`
 
 	User  *User  `gorm:"foreignKey:UserID"`
 	Hotel *Hotel `gorm:"foreignKey:HotelID"`
@@ -139,4 +132,14 @@ type RoomWithHotel struct {
 	HotelName string `json:"hotel_name"`
 	Address   string `json:"address"`
 	Region    string `json:"region"`
+}
+
+type HotelAdmin struct {
+	ID      uint
+	UserID  uint
+	HotelID uint
+}
+
+func (HotelAdmin) TableName() string {
+	return "admin_hotels"
 }

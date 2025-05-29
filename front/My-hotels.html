@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои отели</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f0f0f0; }
+    .hotel { background: white; padding: 16px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    .hotel h3 { margin: 0 0 8px; }
+    .hotel p { margin: 4px 0; }
+    button { margin-top: 8px; padding: 6px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #1358a0; }
+    .form { background: white; padding: 20px; border-radius: 8px; margin-top: 30px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    input { width: 100%; padding: 8px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <button onclick="window.location.href='index.html'" style="position: fixed; top: 20px; left: 20px; z-index: 999; padding: 8px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">На главную</button>
+  <h2>Управление моими отелями</h2>
+  <div id="hotel-list">Загрузка...</div>
+
+  <div class="form">
+    <h3>Добавить новый отель</h3>
+    <form id="add-hotel-form">
+      <input type="text" name="name" placeholder="Название отеля" required />
+      <input type="text" name="region" placeholder="Регион" required />
+      <input type="text" name="address" placeholder="Адрес" required />
+      <input type="text" name="inn" placeholder="ИНН" required />
+      <input type="text" name="phone" placeholder="Телефон" required />
+      <button type="submit">Добавить отель</button>
+    </form>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token")
+    const payload = token ? JSON.parse(atob(token.split(".")[1])) : null
+
+    function loadHotels() {
+      fetch(`http://localhost:8080/me/hotels`, {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(res => res.json())
+        .then(hotels => {
+          const list = document.getElementById("hotel-list")
+          list.innerHTML = ""
+
+          if (!hotels.length) {
+            list.textContent = "У вас пока нет зарегистрированных отелей."
+            return
+          }
+
+          hotels.forEach(hotel => {
+            const div = document.createElement("div")
+            div.className = "hotel"
+            div.innerHTML = `
+              <h3>${hotel.Name}</h3>
+              <p>Регион: ${hotel.Region}</p>
+              <p>Адрес: ${hotel.Address}</p>
+              <p>ИНН: ${hotel.INN}</p>
+              <p>Телефон: ${hotel.Phone}</p>
+              <button onclick="location.href='addrooms.html?id=${hotel.ID}'">Управление номерами</button>
+            `
+            list.appendChild(div)
+          })
+        })
+        .catch(err => {
+          console.error(err)
+          document.getElementById("hotel-list").textContent = "Ошибка загрузки отелей."
+        })
+    }
+
+    document.getElementById("add-hotel-form").addEventListener("submit", function(e) {
+      e.preventDefault()
+      const form = e.target
+
+      const hotel = {
+        name: form.name.value,
+        region: form.region.value,
+        address: form.address.value,
+        inn: form.inn.value,
+        phone: form.phone.value
+      }
+
+      fetch("http://localhost:8080/hotels", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(hotel)
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Ошибка добавления отеля")
+          return res.json()
+        })
+        .then(() => {
+          alert("Отель успешно добавлен!")
+          loadHotels()
+          form.reset()
+        })
+        .catch(err => alert(err.message))
+    })
+
+    loadHotels()
+  </script>
+</body>
+</html>

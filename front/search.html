@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Поиск номеров</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f0f0f0; }
+    form { margin-bottom: 20px; }
+    input, select { padding: 6px; margin-right: 10px; }
+    .room { background: white; padding: 16px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <button onclick="window.location.href='index.html'" style="position: fixed; top: 20px; left: 20px; z-index: 999; padding: 8px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">На главную</button>
+
+  <h2>Поиск доступных номеров</h2>
+  <form id="search-form">
+    <select name="region" required>
+      <option value="">Выберите регион</option>
+      <option value="Москва">Москва</option>
+      <option value="Краснодарский край">Краснодарский край</option>
+      <option value="Крым">Крым</option>
+      <option value="Санкт-Петербург">Санкт-Петербург</option>
+    </select>
+    <input type="date" name="check_in" required>
+    <input type="date" name="check_out" required>
+    <input type="number" name="min_price" placeholder="Мин. цена" min="0">
+    <input type="number" name="max_price" placeholder="Макс. цена" min="0">
+    <button type="submit">Найти</button>
+  </form>
+
+  <div id="results">Введите параметры и нажмите "Найти"</div>
+
+  <script>
+    document.getElementById("search-form").addEventListener("submit", function(e) {
+      e.preventDefault()
+      const form = e.target
+
+      const payload = {
+        region: form.region.value,
+        check_in: form.check_in.value,
+        check_out: form.check_out.value,
+      }
+
+      if (form.min_price.value) payload.min_price = parseFloat(form.min_price.value)
+      if (form.max_price.value) payload.max_price = parseFloat(form.max_price.value)
+
+      const endpoint = (payload.min_price || payload.max_price)
+        ? "http://localhost:8080/hotels/filter-by-price"
+        : "http://localhost:8080/rooms/search"
+
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+        .then(res => res.json())
+        .then(data => {
+          const out = document.getElementById("results")
+          out.innerHTML = ""
+
+          if (!data.length) {
+            out.textContent = "Ничего не найдено по заданным параметрам."
+            return
+          }
+
+          data.forEach(item => {
+            const div = document.createElement("div")
+            div.className = "room"
+
+            if (item.hotel_name) {
+              div.innerHTML = `
+                <strong>${item.hotel_name}</strong><br>
+                ${item.address} (${item.region})
+              `
+            } else {
+              div.innerHTML = `
+                <strong>${item.Name}</strong><br>
+                ${item.Region} — ${item.Address}<br>
+                <a href="rooms.html?id=${item.ID}">Смотреть номера</a>
+              `
+            }
+
+            out.appendChild(div)
+          })
+        })
+        .catch(err => {
+          console.error(err)
+          document.getElementById("results").textContent = "Ошибка при поиске"
+        })
+    })
+  </script>
+</body>
+</html>

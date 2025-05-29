@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои бронирования</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 30px; }
+    h2 { margin-bottom: 20px; }
+    .booking { background: white; padding: 16px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    .booking h3 { margin: 0 0 8px; }
+    .booking p { margin: 4px 0; }
+    button { padding: 6px 12px; margin-top: 10px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #b71c1c; }
+    .green { color: green; }
+    .red { color: red; }
+    .blue { color: blue; }
+    .actions button { background: #d32f2f; margin-right: 10px; }
+    .actions .pay-btn { background: #1976d2; }
+    .actions .review-btn { background: #388e3c; }
+  </style>
+</head>
+<body>
+  <button onclick="location.href='index.html'">На главную</button>
+  <h2>Мои бронирования</h2>
+  <div id="booking-list">Загрузка...</div>
+
+  <script>
+    const token = localStorage.getItem("token")
+
+    function loadBookings() {
+      fetch("http://localhost:8080/me/bookings", {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(res => res.json())
+        .then(bookings => {
+          const list = document.getElementById("booking-list")
+          list.innerHTML = ""
+
+          bookings.forEach(b => {
+            const div = document.createElement("div")
+            div.className = "booking"
+            div.innerHTML = `
+              <h3>${b.Room.Hotel.Name} — ${b.Room.Type}</h3>
+              <p>С ${b.StartDate} по ${b.EndDate}</p>
+              <p>Гостей: ${b.GuestCount}</p>
+              <p><strong>Статус: ${b.Status}</strong> |
+                <span class="${b.Paid ? 'green' : 'red'}">${b.Paid ? 'Оплачено' : 'Не оплачено'}</span>
+              </p>
+              <div class="actions">
+                ${!b.Paid ? `<button class="pay-btn" onclick="payNow(${b.ID})">Оплатить</button>` : ''}
+                ${b.Paid ? `<button class="review-btn" onclick="leaveReview(${b.Room.Hotel.ID})">Оставить отзыв</button>` : ''}
+                <button onclick="cancel(${b.ID})">Отменить бронирование</button>
+              </div>
+            `
+            list.appendChild(div)
+          })
+        })
+        .catch(err => console.error(err))
+    }
+
+    function cancel(id) {
+      if (!confirm("Вы уверены, что хотите отменить бронирование?")) return
+
+      fetch(`http://localhost:8080/bookings/${id}/cancel`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Не удалось отменить бронирование")
+          loadBookings()
+        })
+        .catch(err => alert(err.message))
+    }
+
+    function payNow(id) {
+      fetch(`http://localhost:8080/bookings/${id}/pay`, {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Ошибка при оплате")
+          return res.json()
+        })
+        .then(() => {
+          alert("Оплата прошла успешно!")
+          loadBookings()
+        })
+        .catch(err => alert(err.message))
+    }
+
+    function leaveReview(hotelID) {
+      const text = prompt("Оставьте отзыв об отеле:")
+      if (!text) return
+
+      const rating = parseInt(prompt("Оценка отеля от 1 до 5:"), 10)
+      if (!rating || rating < 1 || rating > 5) return alert("Некорректная оценка")
+
+      fetch("http://localhost:8080/reviews", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ hotel_id: hotelID, rating, text })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Ошибка отправки отзыва")
+          alert("Отзыв успешно оставлен!")
+        })
+        .catch(err => alert(err.message))
+    }
+
+    loadBookings()
+  </script>
+</body>
+</html>

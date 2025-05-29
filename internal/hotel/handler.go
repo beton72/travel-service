@@ -1,7 +1,9 @@
 package hotel
 
 import (
+	"log"
 	"net/http"
+	"travel-service/internal/db"
 
 	"github.com/gin-gonic/gin"
 )
@@ -119,4 +121,29 @@ func (h *Handler) SearchAvailableRooms(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, rooms)
+}
+
+func (h *Handler) GetMyHotels(c *gin.Context) {
+	userID := c.GetUint("userID")
+
+	hotels, err := h.service.GetHotelsByAdmin(userID)
+	if err != nil {
+		log.Println("ошибка получения отелей:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "не удалось получить отели"})
+		return
+	}
+
+	c.JSON(http.StatusOK, hotels)
+}
+
+func IsRoomBookedToday(roomID uint) (bool, error) {
+	var count int64
+	err := db.DB.
+		Table("bookings").
+		Where("room_id = ? AND start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE", roomID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

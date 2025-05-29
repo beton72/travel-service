@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Редактирование профиля</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; background: #f4f4f4; }
+    .form-box { background: white; padding: 20px; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    input { width: 100%; padding: 10px; margin-bottom: 15px; }
+    button { padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:hover { background: #1358a0; }
+  </style>
+</head>
+<body>
+  <button onclick="window.location.href='index.html'" style="position: fixed; top: 20px; left: 20px; z-index: 999; padding: 8px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">
+  На главную
+</button>
+  <div class="form-box">
+    <h2>Редактирование профиля</h2>
+    <form id="profile-form">
+      <input type="text" name="first_name" placeholder="Имя" required>
+      <input type="text" name="last_name" placeholder="Фамилия" required>
+      <input type="text" name="patronymic" placeholder="Отчество">
+      <input type="email" name="email" placeholder="Email" required>
+      <input type="text" name="phone" placeholder="Номер телефона">
+      <input type="text" name="citizenship" placeholder="Гражданство">
+      <input type="text" name="passport_number" placeholder="Номер паспорта">
+      <label><input type="checkbox" name="has_children"> Есть дети</label>
+      <input type="text" name="photo_urls" placeholder="Ссылки на фото (через запятую)">
+      <input type="password" name="password" placeholder="Новый пароль (необязательно)">
+      <button type="submit">Сохранить изменения</button>
+    </form>
+  </div>
+  <script>
+    const token = localStorage.getItem("token")
+
+    fetch(`http://localhost:8080/me`, {
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error(await res.text())
+        return res.json()
+      })
+      .then(data => {
+        document.querySelector("[name=first_name]").value = data.FirstName || ""
+        document.querySelector("[name=last_name]").value = data.LastName || ""
+        document.querySelector("[name=patronymic]").value = data.Patronymic || ""
+        document.querySelector("[name=email]").value = data.UserEmail || ""
+        document.querySelector("[name=phone]").value = data.UserPhone || ""
+        document.querySelector("[name=citizenship]").value = data.Citizenship || ""
+        document.querySelector("[name=passport_number]").value = data.PassportNumber || ""
+        document.querySelector("[name=has_children]").checked = data.HasChildren || false
+        document.querySelector("[name=photo_urls]").value = (data.PhotoURLs || []).join(", ")
+      })
+      .catch(err => alert("Ошибка загрузки данных: " + err.message))
+
+    document.getElementById("profile-form").addEventListener("submit", function(e) {
+      e.preventDefault()
+      const form = e.target
+      const updated = {}
+
+      function safeSet(key, value) {
+        if (value !== "") updated[key] = value
+      }
+
+      safeSet("first_name", form.first_name.value)
+      safeSet("last_name", form.last_name.value)
+      safeSet("patronymic", form.patronymic.value)
+      safeSet("email", form.email.value)
+      safeSet("phone", form.phone.value)
+      safeSet("citizenship", form.citizenship.value)
+      safeSet("passport_number", form.passport_number.value)
+      if (form.has_children && form.has_children.checked) {
+        updated.has_children = true
+      }
+      if (form.photo_urls.value.trim() !== "") {
+        updated.photo_urls = form.photo_urls.value.split(",").map(s => s.trim())
+      }
+      if (form.password.value !== "") {
+        updated.password = form.password.value
+      }
+
+      fetch(`http://localhost:8080/me`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(updated)
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error(await res.text())
+          alert("Данные обновлены успешно")
+        })
+        .catch(err => alert("Ошибка: " + err.message))
+    })
+  </script>
+</body>
+</html>

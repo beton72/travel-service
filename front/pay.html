@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Оплата бронирования</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f4f4f4; }
+    .box { background: white; padding: 20px; max-width: 500px; margin: auto; text-align: center; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    h2 { margin-bottom: 10px; }
+    button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    button:hover { background-color: #218838; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Оплата бронирования</h2>
+    <p>Нажмите кнопку, чтобы имитировать оплату брони.</p>
+    <button onclick="payNow()">Оплатить</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token")
+    const urlParams = new URLSearchParams(window.location.search)
+    const bookingID = urlParams.get("id")
+
+    function payNow() {
+      fetch(`http://localhost:8080/bookings/${bookingID}/pay`, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + token
+        }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Ошибка оплаты")
+        return res.json()
+      })
+      .then(data => {
+        alert("Оплата прошла успешно!")
+        window.location.href = "my-bookings.html"
+      })
+      .catch(err => alert(err.message))
+    }
+  </script>
+</body>
+</html>

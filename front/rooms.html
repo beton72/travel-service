@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Номера отеля</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background: #f0f0f0; }
+    .room { background: white; padding: 16px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    .room h3 { margin: 0 0 8px; }
+    .room p { margin: 4px 0; }
+    .form { background: white; padding: 20px; border-radius: 8px; margin-top: 30px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    input, textarea { width: 100%; padding: 8px; margin-bottom: 10px; }
+    button { padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #1358a0; }
+    .room img { max-height: 60px; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <button onclick="location.href='index.html'" style="margin-bottom: 20px;">На главную</button>
+  <button onclick="location.href='my-hotels.html'" style="margin-bottom: 20px; margin-left: 10px;">Назад к управлению отелями</button>
+
+  <h2 id="hotel-title">Номера отеля</h2>
+  <div id="room-list">Загрузка...</div>
+
+  <div class="form" id="room-form" style="display:none;">
+    <h3 id="form-title">Добавить номер</h3>
+    <form id="add-room-form">
+      <input type="text" name="type" placeholder="Тип номера" required />
+      <textarea name="description" placeholder="Описание" required></textarea>
+      <input type="number" name="price" placeholder="Цена" required />
+      <input type="number" name="capacity" placeholder="Вместимость" required />
+      <input type="text" name="amenities" placeholder="Удобства (через запятую)" />
+      <input type="text" name="photo_urls" placeholder="Ссылки на фото (через запятую)" />
+      <button type="submit">Сохранить</button>
+      <input type="hidden" name="room_id" />
+    </form>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token")
+    const urlParams = new URLSearchParams(window.location.search)
+    const hotelID = urlParams.get("id")
+
+    function parseJwt(token) {
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    const user = token ? parseJwt(token) : null
+    const isAdmin = user?.role === 'admin'
+
+    if (isAdmin) {
+      document.getElementById("room-form").style.display = "block"
+    }
+
+    function loadRooms() {
+      if (!hotelID) return console.error("hotelID отсутствует")
+
+      fetch(`http://localhost:8080/hotels/${hotelID}`, {
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(res => res.json())
+        .then(hotel => {
+          document.getElementById("hotel-title").textContent = `Номера: ${hotel.Name}`
+          const list = document.getElementById("room-list")
+          list.innerHTML = ""
+
+          hotel.Rooms.forEach(room => {
+            const div = document.createElement("div")
+            div.className = "room"
+            div.innerHTML = `
+              <h3>${room.Type}</h3>
+              <p>${room.Description}</p>
+              <p>Статус: ${room.status_today === 'booked' ? '🔴 Занят' : '🟢 Свободен'}</p>
+              <p>Цена: ${room.Price}₽ | Вместимость: ${room.Capacity} человек</p>
+              <p>Удобства: ${(room.Amenities || []).join(", ")}</p>
+              <div>${(room.PhotoURLs || []).map(url => `<img src='${url}'>`).join("")}</div>
+              ${isAdmin ? `<button onclick="editRoom(${room.ID}, ${JSON.stringify(room).replace(/"/g, '&quot;')})">Редактировать</button>
+              <button onclick="deleteRoom(${room.ID})">Удалить</button>` : ''}
+              <a href="book.html?id=${room.ID}">Забронировать</a>
+            `
+            list.appendChild(div)
+          })
+        })
+        .catch(err => {
+          document.getElementById("room-list").textContent = "Ошибка загрузки номеров"
+          console.error(err)
+        })
+    }
+
+    function deleteRoom(id) {
+      if (!confirm("Удалить номер?")) return
+      fetch(`http://localhost:8080/rooms/${id}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Не удалось удалить номер")
+          loadRooms()
+        })
+        .catch(err => alert(err.message))
+    }
+
+    function editRoom(id, room) {
+      const form = document.getElementById("add-room-form")
+      document.getElementById("form-title").textContent = "Редактировать номер"
+      form.room_id.value = room.ID
+      form.type.value = room.Type
+      form.description.value = room.Description
+      form.price.value = room.Price
+      form.capacity.value = room.Capacity
+      form.amenities.value = (room.Amenities || []).join(", ")
+      form.photo_urls.value = (room.PhotoURLs || []).join(", ")
+    }
+
+    document.getElementById("add-room-form").addEventListener("submit", function(e) {
+      e.preventDefault()
+      const form = e.target
+
+      const payload = {
+        hotel_id: Number(hotelID),
+        type: form.type.value,
+        description: form.description.value,
+        price: Number(form.price.value),
+        capacity: Number(form.capacity.value),
+        amenities: form.amenities.value.split(",").map(a => a.trim()).filter(Boolean),
+        photo_urls: form.photo_urls.value.split(",").map(p => p.trim()).filter(Boolean)
+      }
+
+      const roomId = form.room_id.value
+      const method = roomId ? "PATCH" : "POST"
+      const url = roomId ? `http://localhost:8080/rooms/${roomId}` : `http://localhost:8080/hotels/${hotelID}/rooms`
+
+      fetch(url, {
+        method: method,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Ошибка при сохранении номера")
+          form.reset()
+          document.getElementById("form-title").textContent = "Добавить номер"
+          loadRooms()
+        })
+        .catch(err => alert(err.message))
+    })
+
+    loadRooms()
+  </script>
+</body>
+</html>

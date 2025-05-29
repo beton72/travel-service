@@ -3,6 +3,7 @@ package booking
 import (
 	"net/http"
 	"strconv"
+	"travel-service/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +18,7 @@ func NewHandler(s Service) *Handler {
 
 func (h *Handler) CreateBooking(c *gin.Context) {
 	userID := c.MustGet("userID").(uint)
-
+	var booking models.Booking
 	roomIDParam := c.Param("id")
 	roomIDUint, err := strconv.ParseUint(roomIDParam, 10, 64)
 	if err != nil {
@@ -37,7 +38,11 @@ func (h *Handler) CreateBooking(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "Бронирование успешно создано"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":    "Бронирование успешно создано",
+		"booking_id": booking.ID,
+	})
+
 }
 
 func (h *Handler) GetUserBookings(c *gin.Context) {

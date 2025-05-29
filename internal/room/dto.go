@@ -1,14 +1,12 @@
 package room
 
-import "gorm.io/datatypes"
-
 type CreateRoomInput struct {
-	Type        string         `json:"type" binding:"required"`
-	Description string         `json:"description"`
-	Price       float64        `json:"price" binding:"required"`
-	Capacity    int            `json:"capacity" binding:"required"`
-	Amenities   datatypes.JSON `gorm:"type:jsonb"`
-	PhotoURLs   datatypes.JSON `gorm:"type:jsonb"`
+	Type        string   `json:"type" binding:"required"`
+	Description string   `json:"description"`
+	Price       float64  `json:"price" binding:"required"`
+	Capacity    int      `json:"capacity" binding:"required"`
+	Amenities   []string `json:"amenities,omitempty"`
+	PhotoURLs   []string `json:"photo_urls,omitempty"`
 }
 
 type UpdateRoomInput struct {
@@ -19,4 +17,3 @@ type UpdateRoomInput struct {
 	Amenities   *[]string `json:"amenities,omitempty"`
 	PhotoURLs   *[]string `json:"photo_urls,omitempty"`
 }
-

@@ -1,7 +1,10 @@
 package main
 
 import (
+	"log"
 	"net/http"
+	"os"
+	"time"
 	"travel-service/internal/analytics"
 	"travel-service/internal/auth"
 	"travel-service/internal/booking"
@@ -20,6 +23,19 @@ func main() {
 	r := gin.Default()
 	config.LoadEnv()
 	db.InitPostgres()
+
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
 
 	roomService := room.NewService(db.DB)
 	roomHandler := room.NewHandler(roomService)
@@ -45,8 +61,6 @@ func main() {
 	analyticsService := analytics.NewService(db.DB)
 	analyticsHandler := analytics.NewHandler(analyticsService)
 
-	db.SeedTestData(db.DB)
-
 	protected.GET("/me", authHandler.GetMe)
 	protected.PATCH("/me", authHandler.UpdateMe)
 	protected.GET("/me/bookings", bookingHandler.GetUserBookings)
@@ -60,6 +74,7 @@ func main() {
 	protected.GET("/me/payments", paymentHandler.GetUserPayments)
 	protected.POST("/reviews", reviewHandler.CreateReview)
 	protected.GET("/analytics/report", analyticsHandler.GenerateExcelReport)
+	protected.GET("/me/hotels", hotelHandler.GetMyHotels)
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
@@ -71,8 +86,58 @@ func main() {
 	r.GET("/hotels", hotelHandler.GetHotels)
 	r.GET("/hotels/:id", hotelHandler.GetHotelByID)
 	r.GET("/rooms/:id", roomHandler.GetRoom)
+
 	r.GET("/hotels/:id/reviews", reviewHandler.GetHotelReviews)
 	r.GET("/hotels/:id/reviews/stats", reviewHandler.GetReviewStats)
 	r.POST("/hotels/filter-by-price", hotelHandler.FilterHotelsByPrice)
+	seedUsers()
+	sqlContent, err := os.ReadFile("final_seed_data_from_models.sql")
+	if err != nil {
+		log.Fatalf("не удалось прочитать final_seed_data_from_models.sql: %v", err)
+	}
+
+	if err := db.DB.Exec(string(sqlContent)).Error; err != nil {
+		log.Fatalf("ошибка выполнения SQL сидов: %v", err)
+	}
 	r.Run(":8080")
+}
+
+func seedUsers() {
+	authService := auth.NewService()
+
+	users := []auth.RegisterInput{
+		{
+			FirstName:      "Ирина",
+			LastName:       "Козлова",
+			Patronymic:     "Васильевна",
+			Email:          "user@example.com",
+			Password:       "qwerty123",
+			Phone:          "89991234567",
+			BirthDate:      time.Date(1990, 1, 1, 0, 0, 0, 0, time.UTC),
+			Role:           "client",
+			Citizenship:    "Россия",
+			PassportNumber: "1234567890",
+		},
+		{
+			FirstName:      "Алексей",
+			LastName:       "Смирнов",
+			Patronymic:     "Юрьевич",
+			Email:          "admin@example.com",
+			Password:       "admin123",
+			Phone:          "89999887766",
+			BirthDate:      time.Date(1985, 6, 15, 0, 0, 0, 0, time.UTC),
+			Role:           "admin",
+			Citizenship:    "Россия",
+			PassportNumber: "9876543210",
+		},
+	}
+
+	for _, u := range users {
+		_, err := authService.Register(u)
+		if err != nil {
+			log.Printf("Ошибка при создании пользователя %s: %v\n", u.Email, err)
+		} else {
+			log.Printf("Пользователь создан: email=%s, пароль=%s, роль=%s\n", u.Email, u.Password, u.Role)
+		}
+	}
 }

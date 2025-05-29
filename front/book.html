@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Бронирование номера</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 30px; }
+    .container { background: white; padding: 20px; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    h2 { margin-bottom: 10px; }
+    input, textarea { width: 100%; padding: 8px; margin-bottom: 10px; }
+    button { background: #1976d2; color: white; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #1358a0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button onclick="history.back()" style="margin-bottom: 20px">На главную</button>
+    <h2>Бронирование номера</h2>
+    <h3 id="room-title"></h3>
+    <p id="room-description"></p>
+    <p>Цена: <span id="room-price"></span></p>
+    <p>Вместимость: <span id="room-capacity"></span></p>
+
+    <form id="booking-form">
+      <label>Дата заезда:</label>
+      <input type="date" name="start_date" required />
+      <label>Дата выезда:</label>
+      <input type="date" name="end_date" required />
+      <label>Количество гостей:</label>
+      <input type="number" name="guest_count" required />
+      <label>Комментарий:</label>
+      <textarea name="comment" placeholder="Необязательно"></textarea>
+      <button type="submit">Забронировать</button>
+    </form>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token")
+    const urlParams = new URLSearchParams(window.location.search)
+    const roomID = urlParams.get("id")
+
+    fetch(`http://localhost:8080/rooms/${roomID}`, {
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(res => res.json())
+      .then(room => {
+        document.getElementById("room-title").textContent = room.Type
+        document.getElementById("room-description").textContent = room.Description
+        document.getElementById("room-price").textContent = room.Price + "₽"
+        document.getElementById("room-capacity").textContent = room.Capacity + " человек"
+      })
+      .catch(err => {
+        alert("Ошибка загрузки данных номера")
+        console.error(err)
+      })
+
+    document.getElementById("booking-form").addEventListener("submit", function(e) {
+      e.preventDefault()
+      const form = e.target
+
+      const payload = {
+        start_date: form.start_date.value,
+        end_date: form.end_date.value,
+        guest_count: Number(form.guest_count.value),
+        comment: form.comment.value
+      }
+
+      fetch(`http://localhost:8080/rooms/${roomID}/book`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Не удалось забронировать номер")
+          return res.json()
+        })
+        .then(data => {
+          alert("Бронирование успешно оформлено!")
+          // window.location.href = `pay.html?id=${data.booking_id}`  
+        })
+        .catch(err => alert(err.message))
+    })
+  </script>
+</body>
+</html>

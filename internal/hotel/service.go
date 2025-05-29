@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"travel-service/internal/db"
 	"travel-service/models"
 
 	"gorm.io/gorm"
@@ -18,6 +19,7 @@ type Service interface {
 	UpdateRating(hotelID uint, newRating float64) error
 	FilterHotelsByPriceRange(input FilterHotelsInput) ([]models.Hotel, error)
 	SearchAvailableRooms(input SearchRoomsInput) ([]models.RoomWithHotel, error)
+	GetHotelsByAdmin(userID uint) ([]models.Hotel, error)
 }
 
 type service struct {
@@ -78,7 +80,23 @@ func (s *service) GetHotels() ([]models.Hotel, error) {
 func (s *service) GetHotelByID(id string) (models.Hotel, error) {
 	var hotel models.Hotel
 	err := s.db.Preload("Rooms").First(&hotel, id).Error
-	return hotel, err
+	if err != nil {
+		return hotel, err
+	}
+
+	for i := range hotel.Rooms {
+		booked, err := IsRoomBookedToday(hotel.Rooms[i].ID)
+		if err != nil {
+			return hotel, fmt.Errorf("failed to check status: %w", err)
+		}
+		if booked {
+			hotel.Rooms[i].StatusToday = "booked"
+		} else {
+			hotel.Rooms[i].StatusToday = "free"
+		}
+	}
+
+	return hotel, nil
 }
 
 func (s *service) AddAdminToHotel(input AddAdminInput) error {
@@ -199,4 +217,16 @@ func (s *service) FilterHotelsByPriceRange(input FilterHotelsInput) ([]models.Ho
 	}
 
 	return hotels, nil
+}
+
+func (s *service) GetHotelsByAdmin(userID uint) ([]models.Hotel, error) {
+	var hotels []models.Hotel
+
+	err := db.DB.
+		Joins("JOIN admin_hotels ah ON ah.hotel_id = hotels.id").
+		Where("ah.user_id = ?", userID).
+		Preload("Rooms").
+		Find(&hotels).Error
+
+	return hotels, err
 }

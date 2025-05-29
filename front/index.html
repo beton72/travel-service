@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Список отелей</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f8f8; }
+    .hotel { background: white; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 0 6px rgba(0,0,0,0.1); }
+    .hotel h2 { margin: 0 0 8px; }
+    .hotel .region { color: gray; }
+    .photos img { max-height: 120px; margin-right: 8px; border-radius: 4px; }
+    button { margin-top: 12px; padding: 6px 12px; border: none; background-color: #1976d2; color: white; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #0f5bb5; }
+    #account-panel { position: fixed; top: 20px; right: 20px; background: white; border-radius: 8px; padding: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.2); }
+    #account-menu { display: none; margin-top: 10px; }
+    #account-menu a { display: block; margin: 4px 0; color: #1976d2; text-decoration: none; }
+    #account-menu a:hover { text-decoration: underline; }
+    .rating { margin-top: 6px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <button onclick="window.location.href='index.html'" style="position: fixed; top: 20px; left: 20px; z-index: 999; padding: 8px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer;">На главную</button>
+
+  <div id="account-panel">
+    <button onclick="toggleAccountMenu()">👤 Личный кабинет</button>
+    <div id="account-menu">
+      <a href="me-profile.html">Изменить данные</a>
+      <a href="my-bookings.html">Мои бронирования</a>
+      <a href="my-hotels.html" id="admin-link" style="display:none;">Мои отели (админ)</a>
+    </div>
+  </div>
+
+  <h1>Доступные отели</h1>
+
+  <form id="region-filter" style="margin-bottom: 20px;">
+    <select name="region" required>
+      <option value="">-- Выберите регион --</option>
+      <option value="Москва">Москва</option>
+      <option value="Краснодарский край">Краснодарский край</option>
+      <option value="Крым">Крым</option>
+      <option value="Санкт-Петербург">Санкт-Петербург</option>
+    </select>
+    <button type="submit">Фильтровать</button>
+    <button type="button" onclick="loadHotels()">Сбросить</button>
+  </form>
+
+  <div id="hotel-list">Загрузка...</div>
+
+  <script>
+    function toggleAccountMenu() {
+      const menu = document.getElementById("account-menu")
+      menu.style.display = menu.style.display === "block" ? "none" : "block"
+    }
+
+    function checkRole() {
+      const token = localStorage.getItem("token")
+      if (!token) return
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]))
+        if (payload.role === "admin") {
+          document.getElementById("admin-link").style.display = "block"
+        }
+      } catch (e) { console.error("Ошибка разбора токена", e) }
+    }
+
+    document.getElementById("region-filter").addEventListener("submit", function(e) {
+      e.preventDefault()
+      const region = e.target.region.value
+      loadHotels(region)
+    })
+
+    function loadHotels(region = "") {
+      fetch("http://localhost:8080/hotels")
+        .then(res => res.json())
+        .then(data => {
+          const list = document.getElementById("hotel-list")
+          list.innerHTML = ""
+
+          const filtered = region ? data.filter(h => h.Region === region) : data
+
+          if (filtered.length === 0) {
+            list.textContent = "Нет отелей по заданному региону."
+            return
+          }
+
+          filtered.forEach(hotel => {
+            const div = document.createElement("div")
+            div.className = "hotel"
+            div.innerHTML = `
+              <h2>${hotel.Name}</h2>
+              <p class="region">${hotel.Region} • ${hotel.Address}</p>
+              <p>Телефон: ${hotel.Phone}</p>
+              <p>ИНН: ${hotel.INN}</p>
+              <p class="rating" id="rating-${hotel.ID}">Загрузка оценки...</p>
+              <div class="photos">
+                ${(hotel.photo_urls || []).map(url => `<img src="${url}" />`).join('')}
+              </div>
+              <button onclick="location.href='rooms.html?id=${hotel.ID}'">Смотреть номера</button>
+            `
+            list.appendChild(div)
+
+            // Обновлённый корректный путь к статистике отзывов
+            fetch(`http://localhost:8080/hotels/${hotel.ID}/reviews/stats`)
+              .then(res => res.json())
+              .then(stats => {
+                const el = document.getElementById(`rating-${hotel.ID}`)
+                if (stats.average_rating !== undefined) {
+                  el.textContent = `Средняя оценка: ${stats.average_rating.toFixed(1)} ⭐ (${stats.total_reviews} отзывов)`
+                } else {
+                  el.textContent = "Нет оценок"
+                }
+              })
+              .catch(err => {
+                document.getElementById(`rating-${hotel.ID}`).textContent = "Ошибка при загрузке рейтинга"
+              })
+          })
+        })
+        .catch(err => {
+          console.error("Ошибка загрузки:", err)
+          document.getElementById("hotel-list").textContent = "Ошибка загрузки данных отеля"
+        })
+    }
+
+    loadHotels()
+    checkRole()
+  </script>
+</body>
+</html>
