@@ -7,6 +7,7 @@ type CreateHotelInput struct {
 	Phone         string   `json:"phone" binding:"required"`
 	Region        string   `json:"region" binding:"required"`
 	PhotoURLs     []string `json:"photo_urls"`
+	Amenities     []string `json:"amenities,omitempty"`
 	InitialRating float64  `json:"initial_rating"`
 }
 

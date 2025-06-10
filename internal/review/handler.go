@@ -66,3 +66,30 @@ func (h *Handler) GetReviewStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
+
+func (h *Handler) GetRandomReview(c *gin.Context) {
+	hotelID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID отеля"})
+		return
+	}
+
+	review, err := h.service.GetRandomReview(uint(hotelID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка при получении отзыва"})
+		return
+	}
+	if review.ID == 0 {
+		c.JSON(http.StatusOK, gin.H{})
+		return
+	}
+
+	resp := ReviewResponse{
+		ID:        review.ID,
+		UserID:    review.UserID,
+		Rating:    review.Rating,
+		Text:      review.Text,
+		CreatedAt: review.CreatedAt,
+	}
+	c.JSON(http.StatusOK, resp)
+}

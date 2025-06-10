@@ -41,11 +41,9 @@ func (s *service) ProcessMockPayment(bookingID, userID uint) error {
 	// Создаём запись об оплате (эмуляция оплаты)
 	payment := models.Payment{
 		BookingID:     bookingID,                                 // Связь с бронью
-		Amount:        1000,                                      // Фиксированная сумма (можно заменить расчётом)
 		Status:        "success",                                 // Статус оплаты
 		PaymentMethod: "mock",                                    // Тип оплаты
 		TransactionID: fmt.Sprintf("MOCK-%d", time.Now().Unix()), // Уникальный ID транзакции
-		CreatedAt:     time.Now(),                                // Время создания
 	}
 	// Сохраняем платёж в базу
 	if err := s.db.Create(&payment).Error; err != nil {

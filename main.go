@@ -84,6 +84,7 @@ func main() {
 
 	r.GET("/hotels/:id/reviews", reviewHandler.GetHotelReviews)
 	r.GET("/hotels/:id/reviews/stats", reviewHandler.GetReviewStats)
+	r.GET("/hotels/:id/reviews/random", reviewHandler.GetRandomReview)
 	r.POST("/hotels/filter-by-price", hotelHandler.FilterHotelsByPrice)
 	seedUsers()
 	sqlContent, err := os.ReadFile("final_seed_data_from_models.sql")

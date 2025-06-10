@@ -87,3 +87,4 @@ func (h *Handler) GetRoom(c *gin.Context) {
 
 	c.JSON(http.StatusOK, room)
 }
+

@@ -11,6 +11,7 @@ type Service interface {
 	CreateRoom(input CreateRoomInput, hotelID, userID uint) error
 	UpdateRoom(roomID uint, userID uint, input UpdateRoomInput) error
 	GetRoomByID(id uint) (*models.Room, error)
+	GetRandomReview(hotelID uint) (models.Review, error)
 }
 
 type service struct {
@@ -80,4 +81,16 @@ func (s *service) GetRoomByID(id uint) (*models.Room, error) {
 		return nil, err
 	}
 	return &room, nil
+}
+
+func (s *service) GetRandomReview(hotelID uint) (models.Review, error) {
+	var review models.Review
+	err := s.db.Where("hotel_id = ?", hotelID).
+		Order("RANDOM()").
+		Limit(1).
+		Take(&review).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Review{}, nil
+	}
+	return review, err
 }

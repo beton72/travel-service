@@ -147,3 +147,5 @@ func IsRoomBookedToday(roomID uint) (bool, error) {
 	}
 	return count > 0, nil
 }
+
+

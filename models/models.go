@@ -16,9 +16,9 @@ type User struct {
 	Role           string    `gorm:"size:20;not null"`
 	Citizenship    string    `gorm:"size:50"`
 	HasChildren    bool      `gorm:"default:false"`
-	ChildrenInfo   []string  `gorm:"type:jsonb"`
+	ChildrenInfo   []string  `gorm:"type:jsonb;serializer:json"`
 	PassportNumber string    `gorm:"size:15"`
-	PhotoURLs      []string  `gorm:"type:jsonb"`
+	PhotoURLs      []string  `gorm:"type:jsonb;serializer:json"`
 
 	Bookings    []Booking    `gorm:"foreignKey:UserID"`
 	Reviews     []Review     `gorm:"foreignKey:UserID"`
@@ -33,8 +33,8 @@ type Hotel struct {
 	INN       string   `gorm:"size:12;not null"`
 	Phone     string   `gorm:"size:15;not null"`
 	Region    string   `gorm:"size:100;not null"`
-	PhotoURLs []string `gorm:"type:jsonb"`
-	Amenities []string `gorm:"type:jsonb"`
+	PhotoURLs []string `gorm:"type:jsonb;serializer:json"`
+	Amenities []string `gorm:"type:jsonb;serializer:json"`
 
 	Rooms   []Room       `gorm:"foreignKey:HotelID"`
 	Admins  []AdminHotel `gorm:"foreignKey:HotelID"`
@@ -53,8 +53,8 @@ type Room struct {
 	Description string   `gorm:"type:text"`
 	Price       float64  `gorm:"type:numeric"`
 	Capacity    int      `gorm:"not null"`
-	PhotoURLs   []string `gorm:"type:jsonb"`
-	Amenities   []string `gorm:"type:jsonb"`
+	PhotoURLs   []string `gorm:"type:jsonb;serializer:json"`
+	Amenities   []string `gorm:"type:jsonb;serializer:json"`
 
 	Hotel       *Hotel    `gorm:"foreignKey:HotelID"`
 	Bookings    []Booking `gorm:"foreignKey:RoomID"`
@@ -96,8 +96,8 @@ type Review struct {
 	Rating    int       `gorm:"not null"`
 	Text      string    `gorm:"type:text"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
-	PhotoURLs []string  `gorm:"type:jsonb"`
-	Amenities []string  `gorm:"type:jsonb"`
+	PhotoURLs []string  `gorm:"type:jsonb;serializer:json"`
+	Amenities []string  `gorm:"type:jsonb;serializer:json"`
 
 	User  *User `gorm:"foreignKey:UserID"`
 	Hotel Hotel `gorm:"foreignKey:HotelID"`
@@ -110,7 +110,7 @@ type Agency struct {
 	RegionScope   string   `gorm:"size:100;not null"`
 	ContactPerson string   `gorm:"size:100;not null"`
 	Email         string   `gorm:"size:100;not null"`
-	PhotoURLs     []string `gorm:"type:jsonb"`
+	PhotoURLs     []string `gorm:"type:jsonb;serializer:json"`
 	UserID        uint     `gorm:"not null"`
 
 	User *User `gorm:"foreignKey:UserID"`
@@ -120,8 +120,8 @@ type AdminHotel struct {
 	ID        uint     `gorm:"primaryKey"`
 	UserID    uint     `gorm:"not null"`
 	HotelID   uint     `gorm:"not null"`
-	PhotoURLs []string `gorm:"type:jsonb"`
-	Amenities []string `gorm:"type:jsonb"`
+	PhotoURLs []string `gorm:"type:jsonb;serializer:json"`
+	Amenities []string `gorm:"type:jsonb;serializer:json"`
 
 	User  *User  `gorm:"foreignKey:UserID"`
 	Hotel *Hotel `gorm:"foreignKey:HotelID"`

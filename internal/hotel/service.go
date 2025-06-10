@@ -39,6 +39,7 @@ func (s *service) CreateHotel(input CreateHotelInput, userID uint) error {
 		Phone:     input.Phone,
 		Region:    input.Region,
 		PhotoURLs: input.PhotoURLs,
+		Amenities: input.Amenities,
 	}
 
 	// Сохраняем отель
